@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Household Finance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{--bg:#f8fafc;--bg2:#f1f5f9;--card:#fff;--border:#e2e8f0;--text:#0f172a;--text2:#334155;--text3:#64748b;--runway:#e2e8f0;--bh:#f1f5f9;--grid:rgba(0,0,0,0.07)}
+  html[data-theme="dark"]{--bg:#0f1117;--bg2:#1e2330;--card:#1e2330;--border:#2d3748;--text:#f1f5f9;--text2:#cbd5e1;--text3:#94a3b8;--runway:#2d3748;--bh:#2d3748;--grid:rgba(255,255,255,0.07)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:1.5rem}
+  h1{font-size:18px;font-weight:500;margin-bottom:2px}
+  .sub{font-size:12px;color:var(--text3);margin-bottom:1.5rem}
+  .status{font-size:11px;color:var(--text3);margin-bottom:.75rem;min-height:16px}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem}
+  .metric{background:var(--bg2);border-radius:10px;padding:14px 16px;border:0.5px solid var(--border)}
+  .metric .lbl{font-size:10px;color:var(--text2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+  .metric .val{font-size:20px;font-weight:500;margin-bottom:2px}
+  .metric .sub2{font-size:10px;color:var(--text3)}
+  .pos{color:#1D9E75}.neg{color:#E24B4A}.neu{color:var(--text)}.warn{color:#EF9F27}
+  .card{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+  .card-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:12px}
+  .slabel{font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;font-size:12px;color:var(--text2)}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  hr.div{border:none;border-top:0.5px solid var(--border);margin:1.5rem 0}
+  .rbar-wrap{background:var(--runway);border-radius:4px;height:6px;width:100%;margin:4px 0 2px;overflow:hidden}
+  .rbar{height:6px;border-radius:4px;transition:width .5s}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:.75rem;align-items:flex-start}
+  .btn{font-size:12px;padding:5px 14px;border:0.5px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;color:var(--text2)}
+  .btn:hover{background:var(--bh)}
+  .mask-btn.on{border-color:#EF9F27;color:#EF9F27}
+  .period-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+  .pb{font-size:11px;padding:4px 12px;border:0.5px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--text2)}
+  .pb:hover{background:var(--bh)}
+  .pb.active{background:var(--bg2);border-color:#378ADD;color:#378ADD;font-weight:500}
+  .ret-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+  .ret-pill{background:var(--bg2);border-radius:8px;padding:10px 12px;border:0.5px solid var(--border)}
+  .ret-pill .rl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+  .ret-pill .rv{font-size:16px;font-weight:500;color:#8B5CF6}
+  .rw-section{margin-bottom:10px}
+  .rw-label{font-size:12px;color:var(--text2);display:flex;justify-content:space-between;margin-bottom:3px}
+  .rw-sub{font-size:10px;color:var(--text3);margin-top:1px}
+  footer{font-size:11px;color:var(--text3);text-align:center;margin-top:2rem}
+
+  /* ── Mobile / Safari responsive ───────────────────────────── */
+  @media (max-width: 720px) {
+    body{padding:1rem .85rem}
+    h1{font-size:16px}
+    .grid2{grid-template-columns:1fr}
+    .ret-grid{grid-template-columns:1fr}
+    .metric-grid{grid-template-columns:repeat(2,1fr)}
+    .tab-row{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+    .tab-btn{flex-shrink:0;padding:8px 12px;font-size:12px}
+    .period-row{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding-bottom:2px}
+    .pb{flex-shrink:0}
+    .btn-row{gap:6px}
+    .btn,.acct-trigger{font-size:13px;padding:8px 14px} /* larger tap target */
+    .acct-dropdown{left:auto;right:0;max-width:90vw}
+    .ie-table-wrap{-webkit-overflow-scrolling:touch}
+    .ie-table th,.ie-table td{padding:6px 8px;font-size:11px}
+    input[type=date]{font-size:13px!important;padding:8px!important;min-height:38px}
+    .acct-item{padding:10px 12px} /* larger tap target for checkboxes */
+    .acct-item input[type=checkbox]{width:18px;height:18px}
+    canvas{touch-action:pan-y}
+  }
+  @media (max-width: 420px) {
+    .metric-grid{grid-template-columns:1fr 1fr}
+    .metric .val{font-size:17px}
+  }
+
+  /* Safari: date inputs render with extra internal padding/odd height by default */
+  input[type=date]{-webkit-appearance:none;appearance:none}
+  /* Safari: tap highlight flash on buttons looks broken with custom colors */
+  button{-webkit-tap-highlight-color:transparent}
+  /* Safari: prevent rubber-band overscroll background mismatch */
+  html{background:var(--bg)}
+  .acct-selector{position:relative;display:inline-block}
+  .acct-trigger{font-size:12px;padding:5px 14px;border:0.5px solid var(--border);border-radius:8px;cursor:pointer;background:var(--card);color:var(--text2);display:flex;align-items:center;gap:6px;min-width:160px;justify-content:space-between}
+  .acct-trigger:hover{background:var(--bh)}
+  .acct-trigger.has-filter{border-color:#378ADD;color:#378ADD}
+  .acct-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:100;min-width:280px;max-height:400px;overflow-y:auto}
+  .acct-dropdown.open{display:block}
+  .acct-dropdown-header{padding:10px 12px;border-bottom:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--card)}
+  .acct-dropdown-header span{font-size:12px;font-weight:500;color:var(--text)}
+  .acct-dropdown-actions{display:flex;gap:8px}
+  .acct-action{font-size:11px;color:#378ADD;cursor:pointer;background:none;border:none;padding:0}
+  .acct-group-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px 4px;font-weight:500}
+  .acct-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer}
+  .acct-item:hover{background:var(--bg2)}
+  .acct-item input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:#378ADD;flex-shrink:0}
+  .acct-item label{font-size:13px;color:var(--text);cursor:pointer;flex:1}
+  .acct-item .bal{font-size:11px;color:var(--text3)}
+  .cat-row{display:flex;justify-content:space-between;margin-bottom:8px}
+  .cat-row .name{font-size:12px;color:var(--text)}
+  .cat-row .amt{font-size:12px;color:var(--text2)}
+  .cat-bar-wrap{background:var(--runway);border-radius:3px;height:4px;overflow:hidden;margin-bottom:8px}
+  .cat-bar{height:4px;background:#E24B4A;border-radius:3px}
+  .cat-list-scroll{max-height:420px;overflow-y:auto;padding-right:4px}
+
+  /* Tabs */
+  .tab-row{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:1.25rem;flex-wrap:wrap}
+  .tab-btn{font-size:13px;padding:8px 16px;border:none;background:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;font-weight:500}
+  .tab-btn:hover{color:var(--text2)}
+  .tab-btn.active{color:#378ADD;border-bottom-color:#378ADD}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* Income vs Expense table */
+  .ie-table{width:100%;border-collapse:collapse;font-size:12px}
+  .ie-table th{text-align:right;padding:8px 10px;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+  .ie-table th:first-child{text-align:left}
+  .ie-table td{text-align:right;padding:6px 10px;color:var(--text2);white-space:nowrap}
+  .ie-table td:first-child{text-align:left;color:var(--text)}
+  .ie-table tr.section-row td{font-weight:600;color:var(--text);padding-top:14px}
+  .ie-table tr.section-row:hover td{background:var(--bg2)}
+  .ie-table tr.total-row td{font-weight:600;border-top:1px solid var(--border);padding-top:10px}
+  .ie-table tr.net-row td{font-weight:700;font-size:13px;padding-top:14px}
+  .ie-table-wrap{overflow-x:auto}
+  .ie-zero{color:var(--text3);opacity:.5}
+  /* Tier configurator */
+  .tier-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;overflow-y:auto;padding:20px}
+  .tier-overlay.open{display:block}
+  .tier-modal{background:var(--card);border:1px solid var(--border);border-radius:10px;max-width:860px;margin:0 auto;padding:20px}
+  .tier-modal h2{font-size:16px;margin-bottom:4px}
+  .tier-modal .hint{font-size:11px;color:var(--text3);margin-bottom:14px}
+  .tier-labels{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .tier-labels label{font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px}
+  .tier-labels input{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;width:120px}
+  .tier-table{width:100%;border-collapse:collapse;font-size:12px}
+  .tier-table th{text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:6px 8px;border-bottom:1px solid var(--border)}
+  .tier-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2)}
+  .tier-table select,.tier-table input[type=checkbox]{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;font-size:12px}
+  .tier-row-unassigned td:first-child{color:#EF9F27;font-weight:600}
+  .tier-badge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:8px;background:var(--bg2);color:var(--text3);margin-left:6px;vertical-align:middle}
+  .tier-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .tier-warn-dot{display:inline-block;min-width:16px;padding:0 4px;height:16px;line-height:16px;border-radius:8px;background:#EF9F27;color:#fff;font-size:10px;text-align:center;margin-left:4px}
+  /* ── v1.1 visual refresh ── */
+  body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .btn,.pb{border-radius:999px;transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease;cursor:pointer}
+  .btn:hover{border-color:#378ADD;color:#378ADD}
+  .pb:hover{border-color:#378ADD}
+  .metric,.ret-pill{border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.06);transition:box-shadow .15s ease}
+  .metric:hover{box-shadow:0 3px 10px rgba(15,23,42,.09)}
+  .metric .val{letter-spacing:-.02em}
+  h1{letter-spacing:-.02em}
+  .tier-modal,.acct-dropdown{box-shadow:0 12px 40px rgba(0,0,0,.18)}
+  html[data-theme="dark"] .metric,html[data-theme="dark"] .ret-pill{box-shadow:0 1px 2px rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — account groupings, edit here as accounts change
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ⚠️  EVERYTHING BELOW IS A FICTIONAL WORKED EXAMPLE ("Alex" and "Sam"
+//     with fake all-zero UUIDs) showing the SHAPE of the config.
+//     You MUST replace this entire block with your own account names
+//     and IDs from YOUR Actual Budget setup. See README.md
+//     "Configuration" for how to find your account IDs and customize
+//     every section below.
+// ═══════════════════════════════════════════════════════════════
+const C = {
+  // ── REQUIRED: fill these in with your own values ──────────────
+  // API base path — if you're using the nginx proxy pattern from the README,
+  // this is https://<your-hostname>:<port>/api/v1
+  API   : 'https://YOUR-HOSTNAME-HERE:3445/api/v1',
+  // API key you generated when setting up actual-http-api (see README).
+  // If you use the nginx server-side key injection from the README, leave this as-is.
+  KEY   : 'YOUR-ACTUAL-HTTP-API-KEY-HERE',
+  // Budget Sync ID — found in Actual Budget under Settings > Advanced
+  BID   : 'YOUR-BUDGET-SYNC-ID-HERE',
+  // Earliest date you want history for
+  START : '2024-01-01',
+
+  // Display labels for the two people in the household (used in the
+  // Retirement summary pills and per-account retirement chart)
+  PERSON1_LABEL: 'Alex',
+  PERSON2_LABEL: 'Sam',
+
+  // Default tier names — editable at runtime via the ⚙ Tiers panel.
+  // Rename to match your country (e.g. T3 'Roth IRA' in the US). Only the
+  // ORDER matters to the runway model: T1 depletes first, then T2, then T3.
+  TIER_LABELS: { t1:'Cash', t2:'Margin', t3:'TFSA' },
+
+  // ON-BUDGET accounts: Actual Budget account ID → display name.
+  // Get your IDs with the curl command in README "Setup step 3".
+  // The UUIDs below are FAKE placeholders — replace every entry.
+  OB_ACCOUNTS: {
+    '00000000-0000-0000-0000-000000000001':'Joint Chequing',
+    '00000000-0000-0000-0000-000000000002':'Alex Chequing',
+    '00000000-0000-0000-0000-000000000003':'Sam Chequing',
+    '00000000-0000-0000-0000-000000000004':'Alex Savings',
+    '00000000-0000-0000-0000-000000000005':'Sam Savings',
+    '00000000-0000-0000-0000-000000000006':'Alex Credit Card',
+    '00000000-0000-0000-0000-000000000007':'Sam Credit Card',
+    '00000000-0000-0000-0000-000000000008':'Alex Line of Credit',
+    '00000000-0000-0000-0000-000000000009':'Household Cash',
+  },
+
+  // Account-filter groupings shown in the account picker
+  ACCT_GROUPS: [
+    {label:'Alex',  accounts:['Alex Chequing','Alex Savings','Alex Credit Card','Alex Line of Credit']},
+    {label:'Sam',   accounts:['Sam Chequing','Sam Savings','Sam Credit Card']},
+    {label:'Joint', accounts:['Joint Chequing','Household Cash']},
+  ],
+
+  // Liquidity tiers for the runway model (names must match OB/off-budget names)
+  CASH_ACCOUNTS:   ['Joint Chequing','Alex Chequing','Sam Chequing','Alex Savings','Sam Savings','Household Cash'],
+  MARGIN_ACCOUNTS: ['Alex Margin','Sam Margin'],
+  TFSA_ACCOUNTS:   ['Alex TFSA','Sam TFSA'],   // or your country's tax-free account
+  PERSON1_RET: ['Alex RRSP','Alex Pension'],   // person 1's retirement accounts
+  PERSON2_RET: ['Sam RRSP'],                   // person 2's retirement accounts
+
+  // OFF-BUDGET accounts: Actual Budget account ID → display name.
+  // FAKE placeholder UUIDs — replace with your own.
+  OFF_BUDGET_NAMES: {
+    '00000000-0000-0000-0000-000000000101':'Alex TFSA',
+    '00000000-0000-0000-0000-000000000102':'Sam TFSA',
+    '00000000-0000-0000-0000-000000000103':'Alex RRSP',
+    '00000000-0000-0000-0000-000000000104':'Sam RRSP',
+    '00000000-0000-0000-0000-000000000105':'Alex Pension',
+    '00000000-0000-0000-0000-000000000106':'Alex Margin',
+    '00000000-0000-0000-0000-000000000107':'Sam Margin',
+    '00000000-0000-0000-0000-000000000108':'Home Value',
+    '00000000-0000-0000-0000-000000000109':'Mortgage',
+    // Closed accounts — no longer hold a balance today, but money moved THROUGH them
+    // historically (e.g. old employer RRSP → new RRSP). Needed for accurate net worth
+    // history even though they're excluded from current-balance views.
+    '00000000-0000-0000-0000-000000000110':'Alex Old Employer RRSP (closed)',
+  },
+
+  // Off-budget account names used for the "Home equity" bar on the Net Worth tab.
+  // Leave as empty string '' if you don't track home value / mortgage in AB.
+  HOME_ACCOUNT     : 'Home Value',
+  MORTGAGE_ACCOUNT : 'Mortgage',
+
+  // History-only retirement tracking — includes closed accounts so forward-accumulation
+  // correctly carries balances through account migrations/transfers. Current-balance
+  // views (Overview tab summary + bar chart) still use PERSON1_RET/PERSON2_RET only,
+  // since closed accounts have no live balance to show there.
+  PERSON1_RET_HISTORY: ['Alex RRSP','Alex Pension','Alex Old Employer RRSP'],
+  PERSON2_RET_HISTORY: ['Sam RRSP'],
+
+  // Category GROUP ids treated as income (usually your "Income" group plus
+  // "Starting Balances"). Get them from the /categorygroups endpoint.
+  INCOME_CATEGORY_IDS: [
+    '00000000-0000-0000-0000-000000000201', // Income
+    '00000000-0000-0000-0000-000000000202', // Starting Balances
+  ],
+}
+</script>
+
+<h1>Household Finance Dashboard</h1>
+<p class="sub">Actual Budget · self-hosted · live data</p>
+
+<div class="btn-row">
+  <button class="btn mask-btn" id="maskBtn" onclick="toggleMask()">⊘ Hide numbers</button>
+  <button class="btn" onclick="loadAll()">⟳ Refresh</button>
+  <button class="btn" id="tierBtn" onclick="openTierModal()">⚙ Tiers</button>
+  <button class="btn" id="themeBtn" onclick="toggleTheme()">☾ Dark</button>
+  <div class="acct-selector" id="acctSelector">
+    <div class="acct-trigger" id="acctTrigger" onclick="toggleDropdown()">
+      <span id="acctTriggerLabel">All accounts</span><span>▾</span>
+    </div>
+    <div class="acct-dropdown" id="acctDropdown">
+      <div class="acct-dropdown-header">
+        <span>Cash flow accounts</span>
+        <div class="acct-dropdown-actions">
+          <button class="acct-action" onclick="selectAll()">All</button>
+          <button class="acct-action" onclick="selectNone()">None</button>
+          <button class="acct-action" onclick="applyFilter()">Apply ✓</button>
+        </div>
+      </div>
+      <div id="acctList"></div>
+    </div>
+  </div>
+</div>
+<p class="status" id="status">Connecting...</p>
+
+<div class="period-row">
+  <button class="pb" onclick="setPeriod('1m',this)">This month</button>
+  <button class="pb" onclick="setPeriod('3m',this)">3 months</button>
+  <button class="pb" onclick="setPeriod('6m',this)">6 months</button>
+  <button class="pb active" onclick="setPeriod('1y',this)">1 year</button>
+  <button class="pb" onclick="setPeriod('all',this)">All time</button>
+  <button class="pb" id="customBtn" onclick="toggleCustomRange()">Custom...</button>
+</div>
+<div id="customRangeRow" style="display:none;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+  <input type="date" id="customStart" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)">
+  <span style="font-size:12px;color:var(--text3)">to</span>
+  <input type="date" id="customEnd" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)">
+  <button class="btn" onclick="applyCustomRange()">Apply</button>
+</div>
+<p class="status" id="rangeLabel" style="font-weight:500;color:var(--text2)"></p>
+
+<!-- ═══ TABS ═══ -->
+<div class="tab-row">
+  <button class="tab-btn active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab-btn" onclick="showTab('income-expense',this)">Income v Expense</button>
+  <button class="tab-btn" onclick="showTab('net-worth',this)">Net Worth</button>
+  <button class="tab-btn" onclick="showTab('spending-trends',this)">Spending Trends</button>
+</div>
+
+<!-- ═══ TAB: OVERVIEW ═══ -->
+<div class="tab-panel active" id="tab-overview">
+  <div class="metric-grid" id="metrics">
+    <div class="metric"><p class="lbl">Avg monthly income</p><p class="val neu">—</p><p class="sub2">—</p></div>
+    <div class="metric"><p class="lbl">Avg monthly expenses</p><p class="val neu">—</p><p class="sub2">—</p></div>
+    <div class="metric"><p class="lbl">Avg monthly net</p><p class="val neu">—</p><p class="sub2">—</p></div>
+    <div class="metric"><p class="lbl">Period total income</p><p class="val neu">—</p><p class="sub2">—</p></div>
+    <div class="metric"><p class="lbl">Period total expenses</p><p class="val neu">—</p><p class="sub2">—</p></div>
+  </div>
+
+  <hr class="div">
+  <p class="slabel">Net worth breakdown</p>
+  <div class="legend">
+    <span><span class="ldot" style="background:#1D9E75"></span><span id="lgT1">Cash (T1)</span></span>
+    <span><span class="ldot" style="background:#378ADD"></span><span id="lgT2">Margin (T2)</span></span>
+    <span><span class="ldot" style="background:#60A5FA"></span><span id="lgT3">TFSA (T3)</span></span>
+    <span><span class="ldot" style="background:#8B5CF6"></span>Retirement</span>
+    <span><span class="ldot" style="background:#EF9F27"></span>Home equity</span>
+  </div>
+  <div class="card"><div style="position:relative;height:240px"><canvas id="nwChart"></canvas></div></div>
+
+  <hr class="div">
+  <p class="slabel">Monthly cash flow</p>
+  <div class="legend">
+    <span><span class="ldot" style="background:#1D9E75"></span>Income</span>
+    <span><span class="ldot" style="background:#E24B4A"></span>Expenses</span>
+    <span><span class="ldot" style="background:#378ADD;opacity:.7"></span>Net</span>
+  </div>
+  <div class="card"><div style="position:relative;height:240px"><canvas id="cfChart"></canvas></div></div>
+
+  <div class="grid2" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-title">All expense categories</div>
+      <div style="position:relative;height:200px;margin-bottom:12px">
+        <canvas id="catPie" role="img" aria-label="Expense breakdown pie chart"></canvas>
+      </div>
+      <div class="cat-list-scroll" id="catList">Loading...</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Liquidity runways</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:10px" id="avgSpend">Avg monthly spend: —</p>
+      <div id="runway">Loading...</div>
+    </div>
+  </div>
+
+  <hr class="div">
+  <p class="slabel">Retirement accounts (illiquid)</p>
+  <div class="ret-grid" id="retSummary">
+    <div class="ret-pill"><p class="rl" data-person="1">—</p><p class="rv">—</p></div>
+    <div class="ret-pill"><p class="rl" data-person="2">—</p><p class="rv">—</p></div>
+    <div class="ret-pill"><p class="rl">Total</p><p class="rv">—</p></div>
+  </div>
+  <div class="card"><div style="position:relative;height:200px"><canvas id="retChart"></canvas></div></div>
+</div>
+
+<!-- ═══ TAB: INCOME V EXPENSE ═══ -->
+<div class="tab-panel" id="tab-income-expense">
+  <p class="slabel">Income vs Expense by month</p>
+  <div class="card">
+    <div class="ie-table-wrap">
+      <table class="ie-table" id="ieTable"><tbody><tr><td>Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: NET WORTH ═══ -->
+<div class="tab-panel" id="tab-net-worth">
+  <p class="slabel">Net worth over time</p>
+  <div class="legend">
+    <span><span class="ldot" style="background:#378ADD"></span>Assets</span>
+    <span><span class="ldot" style="background:#E24B4A"></span>Debts</span>
+    <span><span class="ldot" style="background:#1D9E75"></span>Net worth</span>
+  </div>
+  <div class="card"><div style="position:relative;height:320px"><canvas id="nwHistoryChart"></canvas></div></div>
+  <div class="card">
+    <div class="card-title">Monthly breakdown</div>
+    <div class="ie-table-wrap">
+      <table class="ie-table" id="nwTable"><tbody><tr><td>Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: SPENDING TRENDS ═══ -->
+<div class="tab-panel" id="tab-spending-trends">
+  <p class="slabel">Spending trends by category</p>
+  <div class="card"><div style="position:relative;height:300px"><canvas id="trendsChart"></canvas></div></div>
+  <div class="card">
+    <div class="card-title">Total spending by month</div>
+    <div class="ie-table-wrap">
+      <table class="ie-table" id="trendsTable"><tbody><tr><td>Loading...</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+<footer id="footer">—</footer>
+
+<script>
+const hdrs={'x-api-key':C.KEY,'Content-Type':'application/json'};
+let charts={}, masked=false, period='1y', bal={};
+let customStart=null, customEnd=null;
+let allTxns=[];
+let txnById={};
+let catNameMap={};
+let catGroupMap={}; // category id -> group name (for spending trends stacking)
+let selectedAccountIds=null;
+let activeTab='overview';
+
+const APP_VERSION='1.1.0';
+const isDark=()=>document.documentElement.dataset.theme==='dark';
+function initTheme(){
+  let t=null; try{ t=localStorage.getItem('abdash_theme'); }catch(e){}
+  if(t!=='light'&&t!=='dark') t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  document.documentElement.dataset.theme=t;
+  const b=$('themeBtn'); if(b) b.textContent = t==='dark' ? '☀ Light' : '☾ Dark';
+}
+function toggleTheme(){
+  const t=isDark()?'light':'dark';
+  document.documentElement.dataset.theme=t;
+  try{ localStorage.setItem('abdash_theme',t); }catch(e){}
+  $('themeBtn').textContent = t==='dark' ? '☀ Light' : '☾ Dark';
+  if(allTxns.length) renderActiveTab();
+}
+const grid=()=>isDark()?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)';
+const fmt=n=> masked ? '$***' : (n<0?'-':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-CA');
+const fmtK=n=> masked ? '$***' : (n<0?'-':'')+'$'+(Math.abs(n)/1000).toFixed(0)+'k';
+const $=id=>document.getElementById(id);
+const setStatus=m=>$('status').textContent=m;
+const dc=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};
+
+function toggleMask(){
+  masked=!masked;
+  $('maskBtn').textContent=masked?'⊙ Show numbers':'⊘ Hide numbers';
+  $('maskBtn').classList.toggle('on',masked);
+  if(allTxns.length) renderActiveTab();
+}
+
+function showTab(name, el){
+  activeTab=name;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  $('tab-'+name).classList.add('active');
+  if(allTxns.length) renderActiveTab();
+}
+
+function renderActiveTab(){
+  // Overview is always rendered since runway/net worth feed off it
+  renderCashFlow();
+  if(activeTab==='income-expense') renderIncomeExpenseTable();
+  if(activeTab==='net-worth') renderNetWorthHistory();
+  if(activeTab==='spending-trends') renderSpendingTrends();
+}
+
+function setPeriod(p,el){
+  period=p;
+  customStart=null; customEnd=null;
+  $('customRangeRow').style.display='none';
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(allTxns.length) renderActiveTab();
+}
+
+function toggleCustomRange(){
+  const row=$('customRangeRow');
+  const showing = row.style.display!=='none';
+  row.style.display = showing ? 'none' : 'flex';
+  if(!showing){
+    const {start,end}=getDateRange();
+    $('customStart').value=start;
+    $('customEnd').value=end;
+  }
+}
+
+function applyCustomRange(){
+  customStart=$('customStart').value;
+  customEnd=$('customEnd').value;
+  if(!customStart||!customEnd) return;
+  period='custom';
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('active'));
+  $('customBtn').classList.add('active');
+  renderActiveTab();
+}
+
+function getDateRange(){
+  if(period==='custom' && customStart && customEnd){
+    return {start:customStart, end:customEnd};
+  }
+  // Presets use COMPLETE months only: on July 10, "6 months" = Jan 1 – Jun 30.
+  // Prevents a partial current month from diluting monthly averages.
+  // "This month" is the explicit month-to-date view; "All time" runs to today.
+  const now=new Date(), today=now.toISOString().slice(0,10);
+  const mo=(y,m)=>new Date(y,m,1).toISOString().slice(0,10);
+  const pm=new Date(now.getFullYear(),now.getMonth(),0); // last day of previous month
+  const endPrev=pm.toISOString().slice(0,10);
+  const startBack=k=>mo(pm.getFullYear(),pm.getMonth()-(k-1));
+  const map={
+    '1m': {start:mo(now.getFullYear(),now.getMonth()), end:today},
+    '3m': {start:startBack(3),  end:endPrev},
+    '6m': {start:startBack(6),  end:endPrev},
+    '1y': {start:startBack(12), end:endPrev},
+    'all':{start:C.START,       end:today},
+  };
+  const r=map[period]||map['all'];
+  return {start:r.start,end:r.end};
+}
+
+function formatRangeLabel(start,end){
+  const s=new Date(start+'T12:00:00'), e=new Date(end+'T12:00:00');
+  const fmtOpt={month:'long',year:'numeric'};
+  return `Showing ${s.toLocaleDateString('en-CA',fmtOpt)} to ${e.toLocaleDateString('en-CA',fmtOpt)}`;
+}
+
+function buildDropdown(){
+  const list=$('acctList');
+  const item=(id,name)=>`<div class="acct-item">
+        <input type="checkbox" id="acct_${id}" value="${id}" checked onchange="updateTriggerLabel()">
+        <label for="acct_${id}">${name}</label>
+        <span class="bal">${bal[name]!==undefined?fmt(bal[name]):''}</span>
+      </div>`;
+  let html=C.ACCT_GROUPS.map(g=>`
+    <div class="acct-group-label">${g.label}</div>
+    ${g.accounts.map(name=>{
+      const id=Object.keys(C.OB_ACCOUNTS).find(k=>C.OB_ACCOUNTS[k]===name);
+      return item(id,name);
+    }).join('')}
+  `).join('');
+  // Off-budget accounts (from the live API list) — relevant for net worth views
+  const offb=liveAccounts.filter(a=>a.offbudget && !a.closed);
+  if(offb.length){
+    html+=`<div class="acct-group-label">Off-budget</div>`+offb.map(a=>item(a.id,a.name)).join('');
+  }
+  list.innerHTML=html;
+}
+function allFilterIds(){ return [...document.querySelectorAll('#acctList input[type=checkbox]')].map(cb=>cb.value); }
+
+function toggleDropdown(){
+  $('acctDropdown').classList.toggle('open');
+  setTimeout(()=>{
+    document.addEventListener('click',function h(e){
+      if(!$('acctSelector').contains(e.target)){
+        $('acctDropdown').classList.remove('open');
+        document.removeEventListener('click',h);
+      }
+    });
+  },0);
+}
+
+function getCheckedIds(){
+  return [...document.querySelectorAll('#acctList input[type=checkbox]:checked')].map(cb=>cb.value);
+}
+
+function updateTriggerLabel(){
+  const checked=getCheckedIds();
+  const total=allFilterIds().length;
+  const t=$('acctTrigger');
+  if(checked.length===total){ $('acctTriggerLabel').textContent='All accounts'; t.classList.remove('has-filter'); }
+  else if(checked.length===0){ $('acctTriggerLabel').textContent='No accounts'; t.classList.add('has-filter'); }
+  else { $('acctTriggerLabel').textContent=`${checked.length} of ${total} accounts`; t.classList.add('has-filter'); }
+}
+
+function selectAll(){ document.querySelectorAll('#acctList input[type=checkbox]').forEach(cb=>cb.checked=true); updateTriggerLabel(); }
+function selectNone(){ document.querySelectorAll('#acctList input[type=checkbox]').forEach(cb=>cb.checked=false); updateTriggerLabel(); }
+
+function applyFilter(){
+  $('acctDropdown').classList.remove('open');
+  const checked=getCheckedIds();
+  selectedAccountIds = checked.length===allFilterIds().length ? null : checked;
+  renderActiveTab();
+}
+
+async function fetchAllTransactions(){
+  setStatus('Fetching all transactions (one-time)...');
+  const r=await fetch(C.API+`/budgets/${C.BID}/run-query`,{
+    method:'POST',headers:hdrs,
+    body:JSON.stringify({ActualQLquery:{table:'transactions',select:['id','date','amount','account','transfer_id','is_parent','category']}})
+  });
+  if(!r.ok) throw new Error('Fetch transactions HTTP '+r.status);
+  const d=await r.json();
+  allTxns=d.data||[];
+  txnById={};
+  for(const t of allTxns) if(t.id) txnById[t.id]=t;
+  setStatus(`Loaded ${allTxns.length} transactions total`);
+}
+
+async function fetchCategories(){
+  const r=await fetch(C.API+`/budgets/${C.BID}/categorygroups`,{headers:hdrs});
+  const d=await r.json();
+  const groups=d.data||d||[];
+  catNameMap={}; catGroupMap={};
+  for(const g of groups){
+    for(const c of (g.categories||[])){
+      catNameMap[c.id]=c.name;
+      catGroupMap[c.id]=g.name;
+    }
+  }
+}
+
+async function getBalance(accountId){
+  try{
+    const r=await fetch(C.API+`/budgets/${C.BID}/accounts/${accountId}/balance`,{headers:hdrs});
+    const d=await r.json();
+    const raw = typeof d.data === 'number' ? d.data : (d.data?.balance ?? d.balance ?? 0);
+    return raw/100;
+  }catch(_){return 0;}
+}
+
+let acctNameToId = {}; // authoritative name -> id map, built from live API (includes closed accounts)
+
+async function loadBalances(){
+  setStatus('Fetching account balances...');
+  const r=await fetch(C.API+`/budgets/${C.BID}/accounts`,{headers:hdrs});
+  const accounts=await r.json();
+  const allAccounts=(accounts.data||accounts);
+  acctNameToId = {};
+  for(const a of allAccounts) acctNameToId[a.name]=a.id; // build for ALL accounts, closed or not
+  liveAccounts = allAccounts.map(a=>({id:a.id,name:a.name,offbudget:!!(a.offbudget||a.off_budget),closed:!!a.closed}));
+  loadTierState(); applyTierConfig();
+  const all=allAccounts.filter(a=>!a.closed);
+  bal={};
+  let i=0;
+  for(const a of all){
+    bal[a.name]=await getBalance(a.id);
+    setStatus(`Fetching balances ${++i}/${all.length}...`);
+  }
+  buildDropdown();
+}
+
+function getMonths(start,end){
+  const months=[];
+  let [sy,sm]=start.split('-').map(Number);
+  let [ey,em]=end.split('-').map(Number);
+  let y=sy,m=sm;
+  while(y<ey || (y===ey && m<=em)){
+    const label=new Date(y,m-1,1).toLocaleDateString('en-CA',{month:'short',year:'2-digit'});
+    const mm=String(m).padStart(2,'0');
+    const lastDay=new Date(y,m,0).getDate();
+    months.push({label, ym:`${y}-${mm}`, start:`${y}-${mm}-01`, end:`${y}-${mm}-${lastDay}`});
+    m++; if(m>12){m=1;y++;}
+  }
+  return months;
+}
+
+function offBudgetAccountName(accountId){
+  return C.OFF_BUDGET_NAMES[accountId] || 'Investment/savings transfer';
+}
+
+function isOffBudgetTransfer(t){
+  if(!t.transfer_id) return false;
+  const paired = txnById[t.transfer_id];
+  if(!paired) return false;
+  return !Object.keys(C.OB_ACCOUNTS).includes(paired.account);
+}
+
+const incomeCatSet = ()=> new Set(C.INCOME_CATEGORY_IDS);
+function isIncome(t){
+  if(t.transfer_id) return t.amount > 0;
+  return incomeCatSet().has(t.category);
+}
+
+function getRelevantTxns(start,end){
+  // Off-budget selections affect net worth views only; income/expense math stays on-budget
+  const accountIds = (selectedAccountIds || Object.keys(C.OB_ACCOUNTS)).filter(id=>C.OB_ACCOUNTS[id]);
+  const acctSet=new Set(accountIds);
+  return allTxns.filter(t=>{
+    if(t.is_parent) return false;
+    if(!acctSet.has(t.account)) return false;
+    if(t.date < start || t.date > end) return false;
+    if(!t.transfer_id) return true;
+    return isOffBudgetTransfer(t);
+  });
+}
+
+function acctSelected(name){ return !selectedAccountIds || selectedAccountIds.includes(acctNameToId[name]); }
+const tierSel = arr => (arr||[]).filter(acctSelected);
+
+function renderNetWorth(){
+  const cash  =tierSel(C.CASH_ACCOUNTS).reduce((s,n)=>s+(bal[n]||0),0);
+  const margin=tierSel(C.MARGIN_ACCOUNTS).reduce((s,n)=>s+(bal[n]||0),0);
+  const tfsa  =tierSel(C.TFSA_ACCOUNTS).reduce((s,n)=>s+(bal[n]||0),0);
+  const pRet  =tierSel(C.PERSON1_RET).reduce((s,n)=>s+(bal[n]||0),0);
+  const sRet  =tierSel(C.PERSON2_RET).reduce((s,n)=>s+(bal[n]||0),0);
+  const ret   =pRet+sRet;
+  const home  =acctSelected(C.HOME_ACCOUNT)?(bal[C.HOME_ACCOUNT]||0):0;
+  const mtg   =acctSelected(C.MORTGAGE_ACCOUNT)?(bal[C.MORTGAGE_ACCOUNT]||0):0;
+  const equity=home+mtg;
+
+  dc('nw');
+  charts['nw']=new Chart($('nwChart'),{
+    type:'bar',
+    data:{labels:[C.TIER_LABELS.t1+' (T1)',C.TIER_LABELS.t2+' (T2)',C.TIER_LABELS.t3+' (T3)','Retirement','Home equity','Total NW'],
+      datasets:[
+        {label:C.TIER_LABELS.t1, data:[cash,0,0,0,0,0],   backgroundColor:'rgba(29,158,117,0.8)'},
+        {label:C.TIER_LABELS.t2, data:[0,margin,0,0,0,0], backgroundColor:'rgba(55,138,221,0.8)'},
+        {label:C.TIER_LABELS.t3, data:[0,0,tfsa,0,0,0],   backgroundColor:'rgba(96,165,250,0.8)'},
+        {label:'Retirement',data:[0,0,0,ret,0,0],       backgroundColor:'rgba(139,92,246,0.8)'},
+        {label:'Home equity',data:[0,0,0,0,equity,0],   backgroundColor:'rgba(239,159,39,0.8)'},
+        {label:'Total (cash)',  data:[0,0,0,0,0,cash],   backgroundColor:'rgba(29,158,117,0.8)'},
+        {label:'Total (margin)',data:[0,0,0,0,0,margin], backgroundColor:'rgba(55,138,221,0.8)'},
+        {label:'Total (tfsa)',  data:[0,0,0,0,0,tfsa],   backgroundColor:'rgba(96,165,250,0.8)'},
+        {label:'Total (ret)',   data:[0,0,0,0,0,ret],    backgroundColor:'rgba(139,92,246,0.8)'},
+        {label:'Total (equity)',data:[0,0,0,0,0,equity], backgroundColor:'rgba(239,159,39,0.8)'},
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:ctx=>' '+fmt(ctx.raw),
+        afterBody:(items)=>{
+          if(items[0]?.label==='Total NW'){
+            return ['Total: '+fmt(cash+margin+tfsa+ret+equity)];
+          }
+          return [];
+        }
+      }}},
+      scales:{x:{stacked:true,ticks:{font:{size:11},callback:fmtK},grid:{color:grid()}},
+              y:{stacked:true,ticks:{font:{size:11}},grid:{display:false}}}}
+  });
+
+  $('retSummary').innerHTML=`
+    <div class="ret-pill"><p class="rl">${C.PERSON1_LABEL}</p><p class="rv">${fmt(pRet)}</p></div>
+    <div class="ret-pill"><p class="rl">${C.PERSON2_LABEL}</p><p class="rv">${fmt(sRet)}</p></div>
+    <div class="ret-pill"><p class="rl">Total (illiquid)</p><p class="rv">${fmt(ret)}</p></div>`;
+
+  const allRet=[
+    ...tierSel(C.PERSON1_RET).map(n=>({name:n.replace(C.PERSON1_LABEL+' ',C.PERSON1_LABEL[0]+'.'),val:bal[n]||0,c:'rgba(139,92,246,0.8)'})),
+    ...tierSel(C.PERSON2_RET).map(n=>({name:n.replace(C.PERSON2_LABEL+' ',C.PERSON2_LABEL[0]+'.'),val:bal[n]||0,c:'rgba(167,139,250,0.7)'})),
+  ].filter(a=>a.val!==0);
+
+  dc('ret');
+  charts['ret']=new Chart($('retChart'),{
+    type:'bar',
+    data:{labels:allRet.map(a=>a.name),
+      datasets:[{label:'Balance',data:allRet.map(a=>Math.round(a.val)),backgroundColor:allRet.map(a=>a.c),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+      scales:{x:{ticks:{font:{size:10},maxRotation:45,autoSkip:false},grid:{display:false}},
+              y:{ticks:{font:{size:11},callback:fmtK},grid:{color:grid()}}}}
+  });
+
+  return {cash,margin,tfsa,ret,equity};
+}
+
+function renderCashFlow(){
+  const {start,end}=getDateRange();
+  $('rangeLabel').textContent = formatRangeLabel(start,end);
+  const months=getMonths(start,end);
+  const n=months.length;
+  const relevant=getRelevantTxns(start,end);
+
+  const income=months.map(()=>0), expenses=months.map(()=>0);
+  const byMonth={}; months.forEach((m,i)=>byMonth[m.ym]=i);
+
+  for(const t of relevant){
+    const ym=t.date.slice(0,7);
+    const idx=byMonth[ym];
+    if(idx===undefined) continue;
+    if(isIncome(t)) income[idx]+=t.amount/100;
+    else expenses[idx]+=(-t.amount)/100;
+  }
+
+  const labels=months.map(m=>m.label);
+  const nets=income.map((v,i)=>Math.round(v-expenses[i]));
+  const incRound=income.map(v=>Math.round(v));
+  const expRound=expenses.map(v=>Math.round(v));
+  const totalInc=incRound.reduce((a,b)=>a+b,0);
+  const totalExp=expRound.reduce((a,b)=>a+b,0);
+  const avgInc=Math.round(totalInc/n);
+  const avgExp=Math.round(totalExp/n);
+  const avgNet=avgInc-avgExp;
+  const netClass=avgNet>=0?'pos':'neg';
+
+  $('metrics').innerHTML=`
+    <div class="metric"><p class="lbl">Avg monthly income</p><p class="val pos">${fmt(avgInc)}</p><p class="sub2">${n}-month average</p></div>
+    <div class="metric"><p class="lbl">Avg monthly expenses</p><p class="val neg">${fmt(avgExp)}</p><p class="sub2">${n}-month average</p></div>
+    <div class="metric"><p class="lbl">Avg monthly net</p><p class="val ${netClass}">${avgNet>=0?'+':''}${fmt(avgNet)}</p><p class="sub2">${n}-month average</p></div>
+    <div class="metric"><p class="lbl">Period total income</p><p class="val pos">${fmt(totalInc)}</p><p class="sub2">${n} months total</p></div>
+    <div class="metric"><p class="lbl">Period total expenses</p><p class="val neg">${fmt(totalExp)}</p><p class="sub2">${n} months total</p></div>`;
+
+  const tiers=renderNetWorth();
+
+  $('avgSpend').textContent = avgNet>=0
+    ? `Currently saving ${fmt(avgNet)}/month on average (income ${fmt(avgInc)} − expenses ${fmt(avgExp)}).`
+    : `Currently burning ${fmt(Math.abs(avgNet))}/month on average (income ${fmt(avgInc)} − expenses ${fmt(avgExp)}).`;
+
+  function sequentialRunway(burnRate){
+    if(burnRate<=0) return {cashMonths:Infinity, cumMargin:Infinity, cumTfsa:Infinity};
+    const cashMonths = tiers.cash>0 ? tiers.cash/burnRate : 0;
+    const marginMonths = tiers.margin>0 ? tiers.margin/burnRate : 0;
+    const tfsaMonths = tiers.tfsa>0 ? tiers.tfsa/burnRate : 0;
+    return {cashMonths, cumMargin:cashMonths+marginMonths, cumTfsa:cashMonths+marginMonths+tfsaMonths};
+  }
+
+  // Scenario A: income stops completely (worst case / emergency fund test) — burn = full expenses
+  const scenarioA = sequentialRunway(avgExp);
+  // Scenario B: current trajectory continues — burn = net (expenses minus income), only meaningful if negative
+  const scenarioB = avgNet<0 ? sequentialRunway(-avgNet) : null;
+
+  const rColor = m => m>=12?'#1D9E75':m>=6?'#EF9F27':'#E24B4A';
+  const maxScale = Math.max(scenarioA.cumTfsa, scenarioB?.cumTfsa||0, 1) * 1.05;
+
+  function renderScenarioBars(s){
+    return `
+      <div class="rw-section">
+        <div class="rw-label"><span>${C.TIER_LABELS.t1}</span><span style="color:${rColor(s.cashMonths)}">${fmt(tiers.cash)} · ${s.cashMonths.toFixed(1)} mo</span></div>
+        <div class="rbar-wrap"><div class="rbar" style="width:${Math.min(100,s.cashMonths/maxScale*100).toFixed(1)}%;background:${rColor(s.cashMonths)}"></div></div>
+      </div>
+      <div class="rw-section">
+        <div class="rw-label"><span>+ ${C.TIER_LABELS.t2}</span><span style="color:${rColor(s.cumMargin)}">${fmt(tiers.margin)} · ${s.cumMargin.toFixed(1)} mo total</span></div>
+        <div class="rbar-wrap"><div class="rbar" style="width:${Math.min(100,s.cumMargin/maxScale*100).toFixed(1)}%;background:${rColor(s.cumMargin)}"></div></div>
+      </div>
+      <div class="rw-section">
+        <div class="rw-label"><span>+ ${C.TIER_LABELS.t3}</span><span style="color:${rColor(s.cumTfsa)}">${fmt(tiers.tfsa)} · ${s.cumTfsa.toFixed(1)} mo total</span></div>
+        <div class="rbar-wrap"><div class="rbar" style="width:${Math.min(100,s.cumTfsa/maxScale*100).toFixed(1)}%;background:${rColor(s.cumTfsa)}"></div></div>
+      </div>`;
+  }
+
+  let runwayHtml = `
+    <p style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">⚠️ If income stopped completely</p>
+    <p style="font-size:10px;color:var(--text3);margin-bottom:10px">Worst case — burn rate = full expenses (${fmt(avgExp)}/mo)</p>
+    ${renderScenarioBars(scenarioA)}`;
+
+  if(scenarioB){
+    runwayHtml += `
+      <hr class="div" style="margin:14px 0">
+      <p style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">📉 At current trajectory</p>
+      <p style="font-size:10px;color:var(--text3);margin-bottom:10px">Income continues — burn rate = net shortfall (${fmt(Math.abs(avgNet))}/mo)</p>
+      ${renderScenarioBars(scenarioB)}`;
+  } else {
+    runwayHtml += `
+      <hr class="div" style="margin:14px 0">
+      <p style="font-size:12px;color:var(--text3)">📈 At current trajectory you're net positive — no draw-down happening on this path.</p>`;
+  }
+
+  $('runway').innerHTML = runwayHtml;
+
+  dc('cf');
+  charts['cf']=new Chart($('cfChart'),{
+    data:{labels,datasets:[
+      {type:'bar',label:'Income',data:incRound,backgroundColor:'rgba(29,158,117,0.7)',borderRadius:3},
+      {type:'bar',label:'Expenses',data:expRound.map(v=>-v),backgroundColor:'rgba(226,75,74,0.7)',borderRadius:3},
+      {type:'line',label:'Net',data:nets,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.1)',borderWidth:2,pointRadius:3,tension:0.3,fill:false,borderDash:[4,4]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},
+      scales:{x:{ticks:{font:{size:11},maxRotation:45,autoSkip:false},grid:{display:false}},
+              y:{ticks:{font:{size:11},callback:fmtK},grid:{color:grid()}}}}
+  });
+
+  renderCategories(relevant);
+  setStatus(`Live data · ${n} months · ${relevant.length} transactions · updated ${new Date().toLocaleTimeString('en-CA')}`);
+}
+
+const PIE_COLORS = ['#E24B4A','#378ADD','#1D9E75','#EF9F27','#8B5CF6','#60A5FA','#F472B6','#A3E635','#FB923C','#94A3B8','#2DD4BF','#C084FC'];
+// Muted palette for stacked spending-trend bars — less saturated, easier on dark backgrounds
+const TREND_COLORS = ['#6B7FD7','#5A9B8E','#C99A5B','#9B6B9E','#5B8FC9','#A37C5B','#7C9B6B','#9E6B7F','#6B9E9B','#8E8E5B','#5B7F9B','#9B7F6B'];
+
+function renderCategories(relevant){
+  const cats={};
+  for(const t of relevant){
+    if(isIncome(t)) continue;
+    let label;
+    if(t.transfer_id && t.category){
+      // Categorized off-budget transfer — use its real category (e.g. "Mortgage",
+      // "TFSA contribution") so it shows alongside normal spending categories.
+      label = t.category;
+    } else if(t.transfer_id){
+      const paired=txnById[t.transfer_id];
+      label = paired ? `↗ ${offBudgetAccountName(paired.account)}` : '↗ Transfer (off-budget)';
+    } else {
+      label = t.category||'__uncategorized__';
+    }
+    cats[label]=(cats[label]||0)-t.amount;
+  }
+  const sorted=Object.entries(cats)
+    .filter(([_,amt])=>amt>0)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([id,amt])=>({
+      name: id==='__uncategorized__' ? 'Uncategorized' : (id.startsWith('↗') ? id : (catNameMap[id]||id)),
+      amt:amt/100
+    }));
+
+  const total = sorted.reduce((s,c)=>s+c.amt,0) || 1;
+  const max = sorted[0]?.amt || 1;
+
+  $('catList').innerHTML = sorted.length===0
+    ? '<p style="color:var(--text3);font-size:12px">No expenses in this period</p>'
+    : sorted.map((c,i)=>{
+        const pct = (c.amt/total*100);
+        return `
+      <div class="cat-row">
+        <span class="name"><span class="ldot" style="background:${PIE_COLORS[i%PIE_COLORS.length]};display:inline-block;margin-right:6px"></span>${c.name}</span>
+        <span class="amt">${fmt(c.amt)} <span style="color:var(--text3)">(${pct.toFixed(1)}%)</span></span>
+      </div>
+      <div class="cat-bar-wrap"><div class="cat-bar" style="width:${(c.amt/max*100).toFixed(0)}%;background:${PIE_COLORS[i%PIE_COLORS.length]}"></div></div>
+    `;}).join('');
+
+  dc('catPie');
+  if(sorted.length>0){
+    charts['catPie']=new Chart($('catPie'),{
+      type:'doughnut',
+      data:{
+        labels: sorted.map(c=>c.name),
+        datasets:[{data:sorted.map(c=>Math.round(c.amt)), backgroundColor:sorted.map((_,i)=>PIE_COLORS[i%PIE_COLORS.length]), borderWidth:0}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>{
+            const pct=(ctx.raw/total*100).toFixed(1);
+            return ` ${ctx.label}: ${fmt(ctx.raw)} (${pct}%)`;
+          }}}
+        }}
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB: INCOME V EXPENSE — table matching YNAB's layout
+// ═══════════════════════════════════════════════════════
+let expandedGroups = new Set(); // tracks which category groups are expanded
+
+function toggleGroup(groupId){
+  if(expandedGroups.has(groupId)) expandedGroups.delete(groupId);
+  else expandedGroups.add(groupId);
+  renderIncomeExpenseTable();
+}
+
+function renderIncomeExpenseTable(){
+  const {start,end}=getDateRange();
+  const months=getMonths(start,end);
+  const relevant=getRelevantTxns(start,end);
+  const byMonth={}; months.forEach((m,i)=>byMonth[m.ym]=i);
+
+  // Structure: groupName -> { total: [permonth], categories: { catName -> [permonth] } }
+  const incomeGroups={}, expenseGroups={};
+
+  for(const t of relevant){
+    const ym=t.date.slice(0,7);
+    const idx=byMonth[ym];
+    if(idx===undefined) continue;
+
+    let groupName, catName, store, signed;
+    if(isIncome(t)){
+      store=incomeGroups;
+      if(t.transfer_id && t.category){
+        // Off-budget transfer that AB already categorized (e.g. investment sale tagged
+        // to a real category) — use that real category instead of a generic label.
+        groupName = catGroupMap[t.category] || 'Other';
+        catName = catNameMap[t.category] || 'Income';
+      } else if(t.transfer_id){
+        groupName = 'Transfers';
+        catName = '↙ Transfer in (off-budget)';
+      } else {
+        groupName = catGroupMap[t.category] || 'Income';
+        catName = catNameMap[t.category] || 'Income';
+      }
+      signed = t.amount/100;
+    } else {
+      store=expenseGroups;
+      if(t.transfer_id && t.category){
+        // Off-budget transfer (mortgage payment, TFSA/RRSP contribution) that AB has
+        // categorized under a real group like Bills or Savings — use that, so mortgage
+        // shows under Bills and TFSA contributions show under Savings, not a separate
+        // synthetic "Transfers" bucket.
+        groupName = catGroupMap[t.category] || 'Other';
+        catName = catNameMap[t.category] || 'Uncategorized';
+      } else if(t.transfer_id){
+        // Genuinely uncategorized off-budget transfer — fall back to a labeled bucket
+        // showing the destination account, so the money is still visible somewhere.
+        groupName = 'Transfers (off-budget)';
+        const paired=txnById[t.transfer_id];
+        catName = paired ? `↗ ${offBudgetAccountName(paired.account)}` : '↗ Transfer (off-budget)';
+      } else {
+        groupName = t.category ? (catGroupMap[t.category]||'Other') : 'Uncategorized';
+        catName = t.category ? (catNameMap[t.category]||'Uncategorized') : 'Uncategorized';
+      }
+      signed = (-t.amount)/100;
+    }
+
+    if(!store[groupName]) store[groupName]={total:months.map(()=>0), categories:{}};
+    if(!store[groupName].categories[catName]) store[groupName].categories[catName]=months.map(()=>0);
+    store[groupName].total[idx]+=signed;
+    store[groupName].categories[catName][idx]+=signed;
+  }
+
+  function sortedGroups(groups){
+    return Object.entries(groups)
+      .filter(([_,g])=>Math.abs(g.total.reduce((s,v)=>s+v,0))>0.01)
+      .sort((a,b)=>b[1].total.reduce((s,v)=>s+v,0) - a[1].total.reduce((s,v)=>s+v,0));
+  }
+
+  const incGroupRows = sortedGroups(incomeGroups);
+  const expGroupRows = sortedGroups(expenseGroups);
+
+  // Compute per-category average and stddev-ish deviation threshold for highlighting outlier months
+  function isOutlier(vals, monthVal){
+    const nonzero = vals.filter(v=>Math.abs(v)>0.01);
+    if(nonzero.length<2) return false;
+    const avg = nonzero.reduce((s,v)=>s+v,0)/nonzero.length;
+    if(avg===0) return false;
+    return Math.abs(monthVal-avg) > avg*0.75 && Math.abs(monthVal)>0.01; // 75%+ deviation from that row's own average
+  }
+
+  const cellFmt = (v,vals) => {
+    const zero = Math.abs(v)<0.01;
+    const outlierCls = !zero && isOutlier(vals,v) ? ' style="font-weight:600;color:#EF9F27"' : '';
+    return zero ? `<span class="ie-zero">${fmt(0)}</span>` : `<span${outlierCls}>${fmt(v)}</span>`;
+  };
+
+  let html = '<thead><tr><th>Category</th>';
+  months.forEach(m=>html+=`<th>${m.label}</th>`);
+  html += '<th>Total</th><th>Average</th></tr></thead><tbody>';
+
+  function renderGroupRows(groupRows, isExpense){
+    let out='';
+    const totals = months.map(()=>0);
+    for(const [groupName,group] of groupRows){
+      const gid = (isExpense?'exp_':'inc_')+groupName.replace(/[^a-zA-Z0-9]/g,'_');
+      const expanded = expandedGroups.has(gid);
+      const groupTotal = group.total.reduce((s,v)=>s+v,0);
+      const sign = isExpense ? '-' : '';
+      const arrow = expanded ? '▾' : '▸';
+
+      out += `<tr class="section-row" style="cursor:pointer" onclick="toggleGroup('${gid}')">
+        <td>${arrow} ${groupName}</td>
+        ${group.total.map((v,i)=>{totals[i]+=v; return `<td>${sign}${cellFmt(v,group.total)}</td>`;}).join('')}
+        <td>${sign}${fmt(groupTotal)}</td><td>${sign}${fmt(groupTotal/months.length)}</td></tr>`;
+
+      if(expanded){
+        const catRows = Object.entries(group.categories).sort((a,b)=>{
+          const ta=a[1].reduce((s,v)=>s+v,0), tb=b[1].reduce((s,v)=>s+v,0);
+          return tb-ta;
+        });
+        for(const [catName,vals] of catRows){
+          const catTotal = vals.reduce((s,v)=>s+v,0);
+          if(Math.abs(catTotal)<0.01) continue;
+          out += `<tr style="font-size:11px"><td style="padding-left:24px;color:var(--text2)">${catName}</td>${vals.map(v=>`<td>${sign}${cellFmt(v,vals)}</td>`).join('')}<td>${sign}${fmt(catTotal)}</td><td>${sign}${fmt(catTotal/months.length)}</td></tr>`;
+        }
+      }
+    }
+    return {html:out, totals};
+  }
+
+  const incResult = renderGroupRows(incGroupRows, false);
+  html += '<tr class="section-row" style="background:rgba(29,158,117,0.08)"><td colspan="'+(months.length+3)+'" style="font-weight:700;color:#1D9E75;padding-top:14px">Income</td></tr>';
+  html += incResult.html;
+  const incGrandTotal = incResult.totals.reduce((s,v)=>s+v,0);
+  html += `<tr class="total-row"><td>Total Income</td>${incResult.totals.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(incGrandTotal)}</td><td>${fmt(incGrandTotal/months.length)}</td></tr>`;
+
+  const expResult = renderGroupRows(expGroupRows, true);
+  html += '<tr class="section-row" style="background:rgba(226,75,74,0.08)"><td colspan="'+(months.length+3)+'" style="font-weight:700;color:#E24B4A;padding-top:14px">Expense</td></tr>';
+  html += expResult.html;
+  const expGrandTotal = expResult.totals.reduce((s,v)=>s+v,0);
+  html += `<tr class="total-row"><td>Total Expenses</td>${expResult.totals.map(v=>`<td>-${fmt(v)}</td>`).join('')}<td>-${fmt(expGrandTotal)}</td><td>-${fmt(expGrandTotal/months.length)}</td></tr>`;
+
+  // Net row — highlight any month where net is negative
+  const netByMonth = incResult.totals.map((v,i)=>v-expResult.totals[i]);
+  const netTotal = incGrandTotal-expGrandTotal;
+  html += `<tr class="net-row"><td>Net Income</td>${netByMonth.map(v=>{
+    const cls = v>=0?'pos':'neg';
+    const bg = v<0 ? ' style="background:rgba(226,75,74,0.12)"' : '';
+    return `<td class="${cls}"${bg}>${v>=0?'':'-'}${fmt(Math.abs(v))}</td>`;
+  }).join('')}<td class="${netTotal>=0?'pos':'neg'}">${netTotal>=0?'':'-'}${fmt(Math.abs(netTotal))}</td><td class="${netTotal>=0?'pos':'neg'}">${netTotal>=0?'':'-'}${fmt(Math.abs(netTotal/months.length))}</td></tr>`;
+
+  html += '</tbody>';
+  $('ieTable').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB: NET WORTH HISTORY — reconstructed from current balance + txn history
+// ═══════════════════════════════════════════════════════
+function renderNetWorthHistory(){
+  const {start,end}=getDateRange();
+  const months=getMonths(start,end);
+
+  const trackedGroups = {
+    cash:   tierSel(C.CASH_ACCOUNTS_HISTORY  || C.CASH_ACCOUNTS),
+    margin: tierSel(C.MARGIN_ACCOUNTS_HISTORY|| C.MARGIN_ACCOUNTS),
+    tfsa:   tierSel(C.TFSA_ACCOUNTS_HISTORY  || C.TFSA_ACCOUNTS),
+    retirement: tierSel([...C.PERSON1_RET_HISTORY, ...C.PERSON2_RET_HISTORY]),
+  };
+
+  // Use the authoritative name->id map built from the live API account list
+  // (acctNameToId, populated in loadBalances) rather than our own display-name
+  // dictionaries, which can drift out of sync with AB's actual account names.
+  const nameToId = acctNameToId;
+
+  const homeValue = acctSelected(C.HOME_ACCOUNT)?(bal[C.HOME_ACCOUNT]||0):0;
+  const mortgageId = acctSelected(C.MORTGAGE_ACCOUNT)?nameToId[C.MORTGAGE_ACCOUNT]:null; // resolved from live account list
+
+  // Forward accumulation: sum every transaction from the very first one up through
+  // each month-end. This naturally absorbs one-time structural events (mortgage
+  // refinancing, account migrations, opening balances) at the date they actually
+  // happened, rather than requiring us to detect and exclude them. Far more robust
+  // than walking backwards from today's balance.
+  //
+  // IMPORTANT: builds a series PER ACCOUNT, not a single pre-summed tier total.
+  // This matters because some "cash" tier accounts are credit cards that can be
+  // negative (debt) while other accounts in the same tier (chequing) are positive.
+  // Summing the tier first and then taking max(0,x)/min(0,x) on the combined number
+  // would let positive chequing balances silently cancel out real credit card debt.
+  // Splitting per-account before combining avoids that.
+  function buildPerAccountSeries(accountNames){
+    const seriesPerAccount = {}; // name -> {monthEnd: balance}
+    for(const name of accountNames){
+      const id = nameToId[name];
+      if(!id){ console.warn('No account id for', name); continue; }
+      const txns = allTxns.filter(t=>t.account===id && !t.is_parent)
+        .sort((a,b)=>a.date.localeCompare(b.date));
+      const series = {};
+      let running=0, ti=0;
+      for(const m of months){
+        while(ti<txns.length && txns[ti].date<=m.end){
+          running+=txns[ti].amount/100;
+          ti++;
+        }
+        series[m.end]=running;
+      }
+      seriesPerAccount[name]=series;
+    }
+    return seriesPerAccount;
+  }
+
+  const cashPerAcct = buildPerAccountSeries(trackedGroups.cash);
+  const marginPerAcct = buildPerAccountSeries(trackedGroups.margin);
+  const tfsaPerAcct = buildPerAccountSeries(trackedGroups.tfsa);
+  const retPerAcct = buildPerAccountSeries(trackedGroups.retirement);
+
+  // Home value as a TIME SERIES stepped by its transactions (reconcile adjustments,
+  // opening balance), instead of today's balance applied flat across all months.
+  // Anchored to the live balance: offset = today's balance minus the sum of ALL its
+  // transactions. If an opening-balance txn exists the offset is zero; if not, the
+  // level is still right and only pre-history months degrade to a flat value.
+  const homeId = acctSelected(C.HOME_ACCOUNT)?nameToId[C.HOME_ACCOUNT]:null;
+  const homeTxns = homeId ? allTxns.filter(t=>t.account===homeId && !t.is_parent)
+    .sort((a,b)=>a.date.localeCompare(b.date)) : [];
+  const homeOffset = homeValue - homeTxns.reduce((sum,t)=>sum+t.amount/100, 0);
+  const homeSeries = {};
+  { let running=0, ti=0;
+    for(const m of months){
+      while(ti<homeTxns.length && homeTxns[ti].date<=m.end){
+        running+=homeTxns[ti].amount/100;
+        ti++;
+      }
+      homeSeries[m.end]=running+homeOffset;
+    }
+  }
+
+  const mortgageTxns = allTxns.filter(t=>t.account===mortgageId && !t.is_parent)
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const mortgageSeries = {};
+  { let running=0, ti=0;
+    for(const m of months){
+      while(ti<mortgageTxns.length && mortgageTxns[ti].date<=m.end){
+        running+=mortgageTxns[ti].amount/100;
+        ti++;
+      }
+      mortgageSeries[m.end]=running;
+    }
+  }
+
+  function splitAssetsDebts(perAcctSeries, monthEnd){
+    let assetSum=0, debtSum=0;
+    for(const name in perAcctSeries){
+      const v = perAcctSeries[name][monthEnd]||0;
+      if(v>=0) assetSum+=v;
+      else debtSum+=-v; // store as positive debt magnitude
+    }
+    return {assetSum, debtSum};
+  }
+
+  const assets=[], debts=[], netWorths=[];
+  for(const m of months){
+    const c=splitAssetsDebts(cashPerAcct, m.end);
+    const mg=splitAssetsDebts(marginPerAcct, m.end);
+    const tf=splitAssetsDebts(tfsaPerAcct, m.end); // TFSA accounts are never realistically negative, but handle anyway
+    const rt=splitAssetsDebts(retPerAcct, m.end);
+    const mortgage = mortgageSeries[m.end]||0;
+
+    const totalAssets = c.assetSum + mg.assetSum + tf.assetSum + rt.assetSum + (homeSeries[m.end]||0);
+    const totalDebts = c.debtSum + mg.debtSum + tf.debtSum + rt.debtSum + Math.max(0,-mortgage);
+    assets.push(Math.round(totalAssets));
+    debts.push(Math.round(totalDebts));
+    netWorths.push(Math.round(totalAssets-totalDebts));
+  }
+
+  const labels=months.map(m=>m.label);
+
+  dc('nwh');
+  charts['nwh']=new Chart($('nwHistoryChart'),{
+    data:{labels,datasets:[
+      {type:'bar',label:'Assets',data:assets,backgroundColor:'rgba(55,138,221,0.75)',borderRadius:3},
+      {type:'bar',label:'Debts',data:debts,backgroundColor:'rgba(226,75,74,0.75)',borderRadius:3},
+      {type:'line',label:'Net worth',data:netWorths,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',borderWidth:2,pointRadius:3,tension:0.3,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{
+        if(ctx.dataset.label==='Debts') return ' Debts: -'+fmt(ctx.raw);
+        return ' '+ctx.dataset.label+': '+fmt(ctx.raw);
+      }}}},
+      scales:{x:{ticks:{font:{size:11},maxRotation:45,autoSkip:false},grid:{display:false}},
+              y:{ticks:{font:{size:11},callback:fmtK},grid:{color:grid()},beginAtZero:true}}}
+  });
+
+  let html='<thead><tr><th>Month</th><th>Assets</th><th>Debts</th><th>Net Worth</th><th>Change</th></tr></thead><tbody>';
+  for(let i=0;i<months.length;i++){
+    const change = i>0 ? netWorths[i]-netWorths[i-1] : 0;
+    const changeCls = change>=0?'pos':'neg';
+    html += `<tr><td>${months[i].label}</td><td>${fmt(assets[i])}</td><td>-${fmt(debts[i])}</td><td>${fmt(netWorths[i])}</td><td class="${changeCls}">${i>0?(change>=0?'+':'')+fmt(change):'—'}</td></tr>`;
+  }
+  html += '</tbody>';
+  $('nwTable').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// TAB: SPENDING TRENDS — stacked category breakdown over time
+// ═══════════════════════════════════════════════════════
+function renderSpendingTrends(){
+  const {start,end}=getDateRange();
+  const months=getMonths(start,end);
+  const relevant=getRelevantTxns(start,end);
+  const byMonth={}; months.forEach((m,i)=>byMonth[m.ym]=i);
+
+  // Group by category GROUP (e.g. "Needs", "Bills") for the stacked chart — cleaner than every category
+  const groupTotals={}; // groupName -> [per month]
+  const monthTotals = months.map(()=>0);
+
+  for(const t of relevant){
+    if(isIncome(t)) continue;
+    const ym=t.date.slice(0,7);
+    const idx=byMonth[ym];
+    if(idx===undefined) continue;
+    let groupName;
+    if(t.transfer_id && t.category){
+      // Categorized off-budget transfer (mortgage, TFSA/RRSP contribution) — group
+      // under its real category group (Bills, Savings, etc.), not a synthetic bucket.
+      groupName = catGroupMap[t.category] || 'Other';
+    } else if(t.transfer_id){
+      groupName = 'Transfers (off-budget)';
+    } else {
+      groupName = catGroupMap[t.category] || 'Uncategorized';
+    }
+    if(!groupTotals[groupName]) groupTotals[groupName]=months.map(()=>0);
+    groupTotals[groupName][idx] += (-t.amount)/100;
+    monthTotals[idx] += (-t.amount)/100;
+  }
+
+  const labels=months.map(m=>m.label);
+  const groupNames = Object.keys(groupTotals).sort((a,b)=>{
+    const totalA=groupTotals[a].reduce((s,v)=>s+v,0), totalB=groupTotals[b].reduce((s,v)=>s+v,0);
+    return totalB-totalA;
+  });
+
+  dc('trends');
+  charts['trends']=new Chart($('trendsChart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      ...groupNames.map((g,i)=>({
+        label:g,
+        data:groupTotals[g].map(v=>Math.round(v)),
+        backgroundColor:TREND_COLORS[i%TREND_COLORS.length],
+        stack:'spend'
+      })),
+      {type:'line',label:'Total',data:monthTotals.map(v=>Math.round(v)),borderColor:'#EF9F27',backgroundColor:'#EF9F27',borderWidth:3,pointRadius:4,pointBackgroundColor:'#EF9F27',pointBorderColor:isDark()?'#0f1117':'#fff',pointBorderWidth:2,tension:0.25,fill:false,yAxisID:'y',order:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10},color:isDark()?'#cbd5e1':'#334155',boxWidth:10}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmt(ctx.raw)}`}}},
+      scales:{x:{stacked:true,ticks:{font:{size:11},maxRotation:45,autoSkip:false},grid:{display:false}},
+              y:{stacked:true,ticks:{font:{size:11},callback:fmtK},grid:{color:grid()}}}}
+  });
+
+  const avgTotal = monthTotals.reduce((s,v)=>s+v,0)/months.length;
+  let html='<thead><tr><th>Month</th><th>Total spending</th><th>vs average</th></tr></thead><tbody>';
+  for(let i=0;i<months.length;i++){
+    const diff = monthTotals[i]-avgTotal;
+    const diffCls = diff>=0?'neg':'pos'; // spending above average is "bad" (red), below is "good" (green)
+    const diffPct = avgTotal>0 ? (diff/avgTotal*100).toFixed(0) : 0;
+    html += `<tr><td>${months[i].label}</td><td>${fmt(monthTotals[i])}</td><td class="${diffCls}">${diff>=0?'+':''}${fmt(diff)} (${diff>=0?'+':''}${diffPct}%)</td></tr>`;
+  }
+  html += `<tr class="total-row"><td>Average</td><td>${fmt(avgTotal)}</td><td>—</td></tr>`;
+  html += '</tbody>';
+  $('trendsTable').innerHTML = html;
+
+}
+
+
+// ═══════════════════════════════════════════════════════
+// TIER CONFIGURATOR — runtime account→tier assignment.
+// CONFIG arrays act as seed defaults; edits persist in
+// localStorage (per browser) and can be exported/imported
+// as JSON to move between devices or bake back into CONFIG.
+// Keyed by account ID (stable even if you rename accounts).
+// ═══════════════════════════════════════════════════════
+const TIER_LS_KEY='abdash_tiers_v1';
+let liveAccounts=[];   // [{id,name,offbudget,closed}] from the live API
+let tierState=null;    // {labels:{t1,t2,t3}, personLabels:{p1,p2}, assignments:{id:{role,person,historyOnly}}}
+const TIER_ROLES=[['unassigned','— Unassigned —'],['t1','Tier 1'],['t2','Tier 2'],['t3','Tier 3'],
+  ['ret','Retirement (illiquid)'],['home','Home value'],['mortgage','Mortgage'],['exclude','Exclude']];
+
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } }
+
+// Seed assignments from the CONFIG arrays (matched by name against the live list)
+function seedTierState(){
+  const byName={}; for(const a of liveAccounts) byName[a.name]=a.id;
+  const asg={};
+  const put=(names,role,person,historyOnly)=>{ for(const n of names||[]){ const id=byName[n]; if(id) asg[id]={role,person:person||0,historyOnly:!!historyOnly}; } };
+  put(C.CASH_ACCOUNTS,'t1'); put(C.MARGIN_ACCOUNTS,'t2'); put(C.TFSA_ACCOUNTS,'t3');
+  put(C.PERSON1_RET,'ret',1,false); put(C.PERSON2_RET,'ret',2,false);
+  // history-only retirement = in *_RET_HISTORY but not in *_RET (typically closed accounts)
+  put((C.PERSON1_RET_HISTORY||[]).filter(n=>!(C.PERSON1_RET||[]).includes(n)),'ret',1,true);
+  put((C.PERSON2_RET_HISTORY||[]).filter(n=>!(C.PERSON2_RET||[]).includes(n)),'ret',2,true);
+  if(byName[C.HOME_ACCOUNT])     asg[byName[C.HOME_ACCOUNT]]    ={role:'home',person:0,historyOnly:false};
+  if(byName[C.MORTGAGE_ACCOUNT]) asg[byName[C.MORTGAGE_ACCOUNT]]={role:'mortgage',person:0,historyOnly:false};
+  for(const a of liveAccounts) if(!asg[a.id]) asg[a.id]={role:'unassigned',person:0,historyOnly:false};
+  // Closed accounts in liquidity tiers default to history-only (in net-worth
+  // history, hidden from current balances)
+  for(const a of liveAccounts){ const v=asg[a.id];
+    if(a.closed && ['t1','t2','t3'].includes(v.role)) v.historyOnly=true; }
+  return { labels:{...(C.TIER_LABELS||{t1:'Cash',t2:'Margin',t3:'TFSA'})},
+           personLabels:{p1:C.PERSON1_LABEL||'Person 1',p2:C.PERSON2_LABEL||'Person 2'}, assignments:asg };
+}
+
+function loadTierState(){
+  const raw=lsGet(TIER_LS_KEY);
+  if(raw){ try{ tierState=JSON.parse(raw); }catch(e){ tierState=null; } }
+  if(!tierState || !tierState.assignments) tierState=seedTierState();
+  // Accounts created since last save appear as unassigned
+  for(const a of liveAccounts) if(!tierState.assignments[a.id])
+    tierState.assignments[a.id]={role:'unassigned',person:0,historyOnly:false};
+}
+
+// Overwrite the effective C.* arrays that all charts/runway logic consume
+function applyTierConfig(){
+  const idToName={}; for(const a of liveAccounts) idToName[a.id]=a.name;
+  const names=(role,inclHist)=>Object.entries(tierState.assignments)
+    .filter(([id,v])=>v.role===role && idToName[id] && (inclHist||!v.historyOnly)).map(([id])=>idToName[id]);
+  const retNames=(person,historyOnly)=>Object.entries(tierState.assignments)
+    .filter(([id,v])=>v.role==='ret' && v.person===person && idToName[id] && (historyOnly||!v.historyOnly))
+    .map(([id])=>idToName[id]);
+  C.CASH_ACCOUNTS=names('t1',false); C.MARGIN_ACCOUNTS=names('t2',false); C.TFSA_ACCOUNTS=names('t3',false);
+  C.CASH_ACCOUNTS_HISTORY=names('t1',true); C.MARGIN_ACCOUNTS_HISTORY=names('t2',true); C.TFSA_ACCOUNTS_HISTORY=names('t3',true);
+  C.PERSON1_RET=retNames(1,false);        C.PERSON2_RET=retNames(2,false);
+  C.PERSON1_RET_HISTORY=retNames(1,true); C.PERSON2_RET_HISTORY=retNames(2,true);
+  C.HOME_ACCOUNT=names('home',true)[0]||'';    C.MORTGAGE_ACCOUNT=names('mortgage',true)[0]||'';
+  C.TIER_LABELS={...tierState.labels};
+  C.PERSON1_LABEL=tierState.personLabels.p1; C.PERSON2_LABEL=tierState.personLabels.p2;
+  const TL=C.TIER_LABELS;
+  if($('lgT1')){ $('lgT1').textContent=TL.t1+' (T1)'; $('lgT2').textContent=TL.t2+' (T2)'; $('lgT3').textContent=TL.t3+' (T3)'; }
+  const un=Object.values(tierState.assignments).filter(v=>v.role==='unassigned').length;
+  const btn=$('tierBtn');
+  if(btn) btn.innerHTML='⚙ Tiers'+(un?` <span class="tier-warn-dot" title="${un} unassigned account(s)">${un}</span>`:'');
+}
+
+function openTierModal(){
+  let ov=$('tierOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='tierOverlay'; ov.className='tier-overlay';
+    ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('open'); });
+    document.body.appendChild(ov); }
+  const roleOpts=sel=>TIER_ROLES.map(([v,l])=>`<option value="${v}"${v===sel?' selected':''}>${l}</option>`).join('');
+  const rows=[...liveAccounts].sort((a,b)=>{
+    const ua=tierState.assignments[a.id].role==='unassigned'?0:1, ub=tierState.assignments[b.id].role==='unassigned'?0:1;
+    if(ua!==ub) return ua-ub;
+    if(!!a.closed!==!!b.closed) return a.closed?1:-1;
+    if(!!a.offbudget!==!!b.offbudget) return a.offbudget?1:-1;
+    return a.name.localeCompare(b.name);
+  }).map(a=>{
+    const v=tierState.assignments[a.id]; const isRet=v.role==='ret';
+    const canHist=['t1','t2','t3','ret'].includes(v.role);
+    return `<tr class="${v.role==='unassigned'?'tier-row-unassigned':''}">
+      <td>${a.name}${a.offbudget?'<span class="tier-badge">off-budget</span>':''}${a.closed?'<span class="tier-badge">closed</span>':''}</td>
+      <td><select onchange="setTierRole('${a.id}',this.value)">${roleOpts(v.role)}</select></td>
+      <td>${isRet?`<select onchange="setTierPerson('${a.id}',this.value)">
+        <option value="1"${v.person===1?' selected':''}>${tierState.personLabels.p1}</option>
+        <option value="2"${v.person===2?' selected':''}>${tierState.personLabels.p2}</option></select>`:''}</td>
+      <td>${canHist?`<label style="font-size:11px"><input type="checkbox" onchange="setTierHist('${a.id}',this.checked)"${v.historyOnly?' checked':''}> history only</label>`:''}</td>
+    </tr>`;
+  }).join('');
+  ov.innerHTML=`<div class="tier-modal">
+    <h2>Liquidity tier assignment</h2>
+    <p class="hint">Assign each account to a tier. Tier ORDER drives the runway model (T1 depletes first,
+    then T2, then T3; Retirement is treated as illiquid). Labels are cosmetic — rename them for your country.
+    "History only" (any tier) keeps a closed account in net-worth history without showing it in current balances or runway.
+    Saved in this browser; use Export to move settings to another device or bake them into dashboard.html's CONFIG.</p>
+    <div class="tier-labels">
+      <label>Tier 1 label<input value="${tierState.labels.t1}" onchange="tierState.labels.t1=this.value"></label>
+      <label>Tier 2 label<input value="${tierState.labels.t2}" onchange="tierState.labels.t2=this.value"></label>
+      <label>Tier 3 label<input value="${tierState.labels.t3}" onchange="tierState.labels.t3=this.value"></label>
+      <label>Person 1 label<input value="${tierState.personLabels.p1}" onchange="tierState.personLabels.p1=this.value"></label>
+      <label>Person 2 label<input value="${tierState.personLabels.p2}" onchange="tierState.personLabels.p2=this.value"></label>
+    </div>
+    <div style="max-height:50vh;overflow-y:auto"><table class="tier-table">
+      <thead><tr><th>Account</th><th>Role</th><th>Person</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="tier-actions">
+      <button class="btn" onclick="saveTiers()">✓ Save & apply</button>
+      <button class="btn" onclick="resetTiers()">↺ Reset to file config</button>
+      <button class="btn" onclick="exportTiers()">⇪ Export JSON</button>
+      <button class="btn" onclick="importTiers()">⇩ Import JSON</button>
+      <button class="btn" onclick="$('tierOverlay').classList.remove('open')">Close</button>
+    </div></div>`;
+  ov.classList.add('open');
+}
+
+function setTierRole(id,role){ const v=tierState.assignments[id]; v.role=role; if(role==='ret'&&!v.person) v.person=1; openTierModal(); }
+function setTierPerson(id,p){ tierState.assignments[id].person=Number(p); }
+function setTierHist(id,c){ tierState.assignments[id].historyOnly=c; }
+function saveTiers(){
+  if(!lsSet(TIER_LS_KEY,JSON.stringify(tierState)))
+    alert('Could not persist to localStorage (private browsing?). Settings apply for this session only — use Export to keep them.');
+  applyTierConfig(); renderActiveTab();
+  const ov=$('tierOverlay'); if(ov) ov.classList.remove('open');
+}
+function resetTiers(){ if(confirm('Discard saved assignments and reseed from dashboard.html CONFIG?')){ try{localStorage.removeItem(TIER_LS_KEY);}catch(e){} tierState=seedTierState(); applyTierConfig(); renderActiveTab(); openTierModal(); } }
+function exportTiers(){
+  const json=JSON.stringify(tierState,null,2);
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(()=>alert('Tier config copied to clipboard.'),()=>prompt('Copy tier config JSON:',json));
+  else prompt('Copy tier config JSON:',json);
+}
+function importTiers(){
+  const raw=prompt('Paste tier config JSON:'); if(!raw) return;
+  try{ const s=JSON.parse(raw); if(!s.assignments||!s.labels) throw new Error('missing fields');
+    tierState=s; loadTierState(); saveTiers(); openTierModal();
+  }catch(e){ alert('Invalid JSON: '+e.message); }
+}
+
+initTheme();
+
+async function loadAll(){
+  try{
+    await loadBalances();
+    await fetchCategories();
+    await fetchAllTransactions();
+    renderActiveTab();
+    $('footer').textContent='v'+APP_VERSION+' · Last updated '+new Date().toLocaleString('en-CA',{dateStyle:'medium',timeStyle:'short'});
+  }catch(e){
+    setStatus('Error: '+e.message);
+    console.error(e);
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# Never commit real config with secrets
+.env
+*.local.html
+config.local.js
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+*.swp
+
+# Personal deployment kit — real config & runbook, never public
+private/
