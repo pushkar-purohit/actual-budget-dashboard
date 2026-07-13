@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (C) 2026 Pushkar Purohit — AGPL-3.0
 # setup.sh — One-time setup for QFX importer on your Pi/server
 # Run with: bash setup.sh
 #
