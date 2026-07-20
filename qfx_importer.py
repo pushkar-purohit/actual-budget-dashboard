@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Pushkar Purohit — AGPL-3.0
 """
-QFX Importer for Actual Budget — v1.2.2 (content-based routing)
+QFX Importer for Actual Budget — v1.2.3 (content-based routing)
 ============================================================
 Drop QFX/OFX files (ANY filename) into the inbox. The importer reads the
 <ACCTID> inside each statement block, routes transactions to the mapped
@@ -59,6 +59,13 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 EMAIL_TO      = os.environ.get("EMAIL_TO", "")
 
 PROCESSED_RETENTION_DAYS = 30
+
+# Skip zero-amount transactions. Some banks emit informational rows with
+# TRNAMT of 0 and the real figure in the memo (e.g. RBC line-of-credit
+# interest notices, where the actual charge is debited from another account).
+# They have no financial effect but clutter registers and the uncategorised
+# count. Skipped rows are logged, so nothing disappears silently.
+SKIP_ZERO_AMOUNT = True
 
 # ── Account map: bank account-number SUFFIX → exact AB account name ───────────
 # EXAMPLE ONLY — replace with your own. Run `--inspect` on a downloaded QFX
@@ -130,12 +137,20 @@ def parse_transactions(body: str) -> list[dict]:
         raw_amount = _tag(block, "TRNAMT")
         if len(raw_date) != 8 or not raw_amount:
             continue
+        amount = int(round(float(raw_amount) * 100))
+        date_s = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
+        payee  = _tag(block, "NAME")
+        memo   = _tag(block, "MEMO") or ""
+        if SKIP_ZERO_AMOUNT and amount == 0:
+            log.info(f"  skipped {date_s} $0.00 '{payee}' — informational row"
+                     + (f" (memo: {memo})" if memo else ""))
+            continue
         out.append({
-            "date":        f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}",
-            "amount":      int(round(float(raw_amount) * 100)),
+            "date":        date_s,
+            "amount":      amount,
             "imported_id": _tag(block, "FITID"),
-            "payee_name":  _tag(block, "NAME"),
-            "notes":       _tag(block, "MEMO") or "",
+            "payee_name":  payee,
+            "notes":       memo,
             "cleared":     True,
         })
     return out
@@ -415,7 +430,28 @@ def audit(paths: list[str]) -> None:
             if existing is None:
                 print(f"  [{ab_name}] cannot fetch — skipped")
                 continue
-            in_range_all = [t for t in existing if lo <= (t.get("date") or "") <= hi]
+            # Only compare against rows plausibly sourced from THIS file's bank.
+            # A previous import from the same institution ends/starts mid-range
+            # otherwise shows up as phantom "excess" (observed with TD, whose
+            # ids look like "2026-05-20~2026-06-17~1803509" vs this file's).
+            def _shape(v):
+                v = v or ""
+                return (len(v), sum(c.isdigit() for c in v), "~" in v, ":" in v, "|" in v)
+            file_shapes = {_shape(t.get("imported_id")) for t in s_["transactions"]
+                           if t.get("imported_id")}
+            def _same_source(t):
+                iid = t.get("imported_id")
+                if not iid or not file_shapes:
+                    return True          # manual/unknown rows still count
+                base = iid[2:] if iid.startswith("R:") else iid
+                return _shape(base) in file_shapes
+            in_range_all = [t for t in existing
+                            if lo <= (t.get("date") or "") <= hi and _same_source(t)]
+            foreign = [t for t in existing
+                       if lo <= (t.get("date") or "") <= hi and not _same_source(t)]
+            if foreign:
+                print(f"    note: {len(foreign)} row(s) in range came from a different "
+                      f"import source (e.g. an earlier file from this bank) — not counted")
             in_range = [t for t in in_range_all if not t.get("transfer_id")]
             xfer_rows = [t for t in in_range_all if t.get("transfer_id")]
             file_ct = Counter((t["date"], t["amount"]) for t in s_["transactions"])
