@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Pushkar Purohit — AGPL-3.0
 """
-QFX Importer for Actual Budget — v1.2.3 (content-based routing)
+QFX Importer for Actual Budget — v1.2.4 (content-based routing)
 ============================================================
 Drop QFX/OFX files (ANY filename) into the inbox. The importer reads the
 <ACCTID> inside each statement block, routes transactions to the mapped
@@ -430,28 +430,31 @@ def audit(paths: list[str]) -> None:
             if existing is None:
                 print(f"  [{ab_name}] cannot fetch — skipped")
                 continue
-            # Only compare against rows plausibly sourced from THIS file's bank.
-            # A previous import from the same institution ends/starts mid-range
-            # otherwise shows up as phantom "excess" (observed with TD, whose
-            # ids look like "2026-05-20~2026-06-17~1803509" vs this file's).
-            def _shape(v):
-                v = v or ""
-                return (len(v), sum(c.isdigit() for c in v), "~" in v, ":" in v, "|" in v)
-            file_shapes = {_shape(t.get("imported_id")) for t in s_["transactions"]
-                           if t.get("imported_id")}
+            # Only compare against rows plausibly sourced from THIS file.
+            # Some exporters embed the export window in the id (TD:
+            # "2026-06-18~2026-06-23~1808411" — first two fields are the batch
+            # range). A row whose batch prefix appears nowhere in this file came
+            # from a different export and must not be reported as excess.
+            def _batch(v):
+                v = (v or "")
+                if v.startswith("R:"):
+                    v = v[2:]
+                parts = v.split("~")
+                return "~".join(parts[:2]) if len(parts) >= 3 else None
+            file_batches = {b for b in (_batch(t.get("imported_id"))
+                                        for t in s_["transactions"]) if b}
             def _same_source(t):
-                iid = t.get("imported_id")
-                if not iid or not file_shapes:
-                    return True          # manual/unknown rows still count
-                base = iid[2:] if iid.startswith("R:") else iid
-                return _shape(base) in file_shapes
+                b = _batch(t.get("imported_id"))
+                if b is None or not file_batches:
+                    return True          # no batch info: fall back to counting it
+                return b in file_batches
             in_range_all = [t for t in existing
                             if lo <= (t.get("date") or "") <= hi and _same_source(t)]
             foreign = [t for t in existing
                        if lo <= (t.get("date") or "") <= hi and not _same_source(t)]
             if foreign:
-                print(f"    note: {len(foreign)} row(s) in range came from a different "
-                      f"import source (e.g. an earlier file from this bank) — not counted")
+                print("    note: %d row(s) in range came from a different export batch "
+                      "of this bank — not counted" % len(foreign))
             in_range = [t for t in in_range_all if not t.get("transfer_id")]
             xfer_rows = [t for t in in_range_all if t.get("transfer_id")]
             file_ct = Counter((t["date"], t["amount"]) for t in s_["transactions"])
@@ -471,8 +474,17 @@ def audit(paths: list[str]) -> None:
                               f"{(t.get('amount') or 0)/100:.2f} '{pname(t)}' has no file "
                               f"counterpart — keep (transfer leg), not counted as excess")
             ab_ct   = Counter((t.get("date"), t.get("amount")) for t in in_range)
-            excess_keys = {k: ab_ct[k] - file_ct.get(k, 0)
-                           for k in ab_ct if ab_ct[k] > file_ct.get(k, 0)}
+            excess_keys, lone = {}, []
+            for k in ab_ct:
+                if ab_ct[k] <= file_ct.get(k, 0):
+                    continue
+                if ab_ct[k] == 1 and file_ct.get(k, 0) == 0:
+                    lone.append(k)      # single row absent from this file: not a duplicate
+                    continue
+                excess_keys[k] = ab_ct[k] - file_ct.get(k, 0)
+            for d, amt in sorted(lone):
+                print("    note: %s %10.2f present in AB but not in this file "
+                      "(single row — kept, likely from another export)" % (d, amt / 100))
             print(f"  [{ab_name}] range {lo} → {hi}: "
                   f"{sum(excess_keys.values()) or 'no'} excess transaction(s)")
             for (d, amt), n in sorted(excess_keys.items()):
