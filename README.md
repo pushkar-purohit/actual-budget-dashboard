@@ -154,7 +154,15 @@ bash setup.sh
 
 This walks you through folder paths, installs dependencies, and registers a cron job. Before running, edit `qfx_importer.py`'s `BUDGET_SYNC_ID` and `ACCOUNT_MAP`.
 
-Workflow once set up: download a QFX/OFX file from your bank, rename it to `AccountName_DD-MM-YYYY.qfx`, drop it in the configured inbox folder. Within 5 minutes it's imported -- duplicates are automatically skipped via FITID matching, the same mechanism Actual Budget's own QFX import uses.
+Workflow once set up: download a QFX/OFX file from your bank and drop it in the inbox folder -- **any filename, no renaming**. The importer reads the account number(s) embedded in the file and routes transactions to the mapped Actual Budget account. Files containing multiple accounts (some banks export combined statements) are split and routed automatically. Within 5 minutes it's imported -- duplicates are skipped via FITID matching, the same mechanism Actual Budget's own QFX import uses, so re-dropping a file or overlapping date ranges is always safe.
+
+To build your `ACCOUNT_MAP` (a one-time step), download one statement per account and run:
+
+```bash
+python3 qfx_importer.py --inspect ~/Downloads/*.qfx
+```
+
+It prints the account id found in each file plus a ready-to-paste map line -- fill in your AB account names and you're done.
 
 ---
 
@@ -168,6 +176,10 @@ Workflow once set up: download a QFX/OFX file from your bank, rename it to `Acco
 - **Consider self-hosting Chart.js** instead of loading it from a CDN, or add a [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) hash to the `<script>` tag. A finance dashboard is exactly the kind of page where you don't want a compromised CDN able to inject script.
 
 ## Changelog
+
+- **1.2.2** -- Import reliability release: count-aware (date, amount) pre-import dedup, immune to banks that regenerate FITIDs between downloads (observed with RBC); read-only `--audit` duplicate report with payee names; tombstone-aware retry (Actual Budget silently drops re-imports of deleted FITIDs); transfer-linked rows recognised on date-shifted legs in both import and audit.
+
+- **1.2.0** -- QFX importer v2: files are routed by the account number embedded in the file (`<ACCTID>`) instead of filename conventions -- no more renaming downloads. Multi-account files (several statement blocks in one QFX) are split and imported to each mapped account. New `--inspect` mode prints the account ids in a file with suggested map lines. `.ofx` extension also accepted. Account numbers are masked in logs and emails.
 
 - **1.1.0** -- Light/dark theme toggle; complete-month period presets (partial current month no longer skews averages); off-budget accounts selectable in the account filter (drives net worth views; income/expense stays on-budget); "history only" flag extended to all tiers (closed chequing/margin/TFSA accounts stay in net-worth history, auto-defaulted for closed accounts); visual refresh; version shown in footer.
 - **1.0.0** -- Initial public release: dashboard (Overview, Income v Expense, Net Worth, Spending Trends, liquidity runway, tier configurator) + QFX auto-importer + setup script.
@@ -191,4 +203,4 @@ Workflow once set up: download a QFX/OFX file from your bank, rename it to `Acco
 
 ## License
 
-AGPL-3.0 -- free to use, modify, and share. If you distribute a modified version or run it as a service for others, you must release your source under the same license. For commercial licensing outside AGPL terms, contact the author. Copyright (c) 2026 Pushkar Purohit.
+MIT -- use, modify, and share freely. If you improve something, a pull request would be appreciated but isn't required.
